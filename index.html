@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Control Panel</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .button-group {
+            margin-bottom: 20px;
+        }
+        .button-group button {
+            margin-right: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Control Panel</h1>
+    <div id="controls" class="button-group"></div>
+    <script>
+        let socket;
+        const groups = [
+            { id: 1, name: 'Group 1' },
+            { id: 2, name: 'Group 2' },
+            { id: 3, name: 'Group 3' }
+        ];
+
+        function initWebSocket() {
+            socket = new WebSocket('ws://localhost:8080');
+
+            socket.onopen = () => {
+                console.log('WebSocket connected');
+            };
+
+            socket.onmessage = (event) => {
+                console.log(`Received: ${event.data}`);
+            };
+
+            socket.onclose = () => {
+                console.log('WebSocket disconnected');
+            };
+        }
+
+        function toggleGroup(groupId) {
+            const button = document.getElementById(`group-${groupId}`);
+            const visible = !button.classList.contains('active');
+            button.classList.toggle('active', visible);
+            const message = JSON.stringify({ type: 'toggleGroup', groupId: groupId, visible: visible });
+            socket.send(message);
+        }
+
+        window.onload = () => {
+            initWebSocket();
+            const controlsDiv = document.getElementById('controls');
+            groups.forEach(group => {
+                const button = document.createElement('button');
+                button.id = `group-${group.id}`;
+                button.textContent = group.name;
+                button.onclick = () => toggleGroup(group.id);
+                controlsDiv.appendChild(button);
+            });
+        };
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then(registration => {
+                    console.log('Service Worker registered with scope:', registration.scope);
+                })
+                .catch(error => {
+                    console.log('Service Worker registration failed:', error);
+                });
+        }
+    </script>
+</body>
+</html>
